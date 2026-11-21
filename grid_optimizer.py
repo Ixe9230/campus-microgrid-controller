@@ -17,6 +17,19 @@ LAST_HOURS = 3              # start spending the battery more in last few hours
 
 NO_SOLAR = {"lecture_hall"}
 
+def parse_events(msg):
+    """random_event may be 'none', 'a', 'a,b' or a list. Return a set of names."""
+    event = msg.get("random_event", "none")
+
+    if isinstance(event, list):
+        names = event
+    else:
+        names = str(event).split(",")
+
+    events = set()
+    for name in names:
+        events.add(str(name).strip().lower())
+    return events
 class Controller:
     def __init__(self):
         self.battery = 0.0        # estimate of stored energy
