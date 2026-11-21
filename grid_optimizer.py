@@ -31,15 +31,6 @@ def parse_events(msg):
         events.add(str(name).strip().lower())
     return events
 
-def format_number(x):
-    """Round to 6 decimals, and return whole numbers as ints."""
-    x = round(float(x), 6)
-
-    if x == int(x):
-        return int(x)
-
-    return x
-
 def read_message(sock):
     """Read from the server until we have one complete message."""
     text = ""
