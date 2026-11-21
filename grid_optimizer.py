@@ -44,7 +44,6 @@ class Controller:
     def __init__(self):
         self.battery = 0.0        # estimate of stored energy
         self.hour = 0
-        self.prices = []          # grid price each hour so far
         self.outage_needs = []    # what the battery would need to cover each hour if the grid died
         self.total_cost = 0.0
 
