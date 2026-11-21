@@ -60,3 +60,11 @@ class Controller:
             window = 2 if self.in_last_hours() else RESERVE_WINDOW  # last 3 hours: look back 2 hours, otherwise 6
             worst_recent_hour = max(self.outage_needs[-window:], default=0.0)  # the hour that would have needed the most battery
             return min(BATTERY_CAP, max(MIN_RESERVE, worst_recent_hour))  # keep at least 20, at most 100
+   
+    def charge_amount(self, msg): #how much to refill the battery ($1 per unit, how full should the batteru be??)
+        if self.hours_left()==0: # this is the last hour of the day so dont restore
+            return 0.0
+        expensive_grid = msg.get("grid_price", 0.0)
+        target = self.reserve() #fill the battery up to the emergency amount
+        next_clouds = str(msg.get("forecast", "")). strip().lower() == "cloudy"
+            
