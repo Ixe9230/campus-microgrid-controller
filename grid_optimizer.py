@@ -32,10 +32,12 @@ def parse_events(msg):
     return events
 
 def format_number(x):
-    """Round, and print whole numbers as ints."""
+    """Round to 6 decimals, and return whole numbers as ints."""
     x = round(float(x), 6)
+
     if x == int(x):
         return int(x)
+
     return x
 
 class Controller:
