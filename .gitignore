@@ -1,0 +1,14 @@
+*.zip
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+*.exe
+*.out
+*.o
+*.obj
+a.out
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
