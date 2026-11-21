@@ -30,6 +30,7 @@ def parse_events(msg):
     for name in names:
         events.add(str(name).strip().lower())
     return events
+
 class Controller:
     def __init__(self):
         self.battery = 0.0        # estimate of stored energy
@@ -38,7 +39,8 @@ class Controller:
         self.outage_needs = []    # what the battery would need to cover each hour if the grid died
         self.total_cost = 0.0
 
-    def hours_left(self):         # hours remaining after current one
+    def hours_left(self): 
+        """hours remaining after current one"""      
         return DAY_HOURS - self.hour - 1
 
     def in_last_hours(self):      # True during last 3 hours
