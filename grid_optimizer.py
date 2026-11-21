@@ -45,3 +45,10 @@ class Controller:
 
     def in_last_hours(self):      # True during last 3 hours
         return self.hours_left() < LAST_HOURS
+
+def reserve(self):  # how much battery to keep in case the grid fails
+        if self.hours_left() == 0:  # last hour of the day: nothing left to protect
+            return 0.0
+        window = 2 if self.in_last_hours() else RESERVE_WINDOW  # last 3 hours: look back 2 hours, otherwise 6
+        worst_recent_hour = max(self.outage_needs[-window:], default=0.0)  # the hour that would have needed the most battery
+        return min(BATTERY_CAP, max(MIN_RESERVE, worst_recent_hour))  # keep at least 20, at most 100
