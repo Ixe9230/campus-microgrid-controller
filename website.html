@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Optimization Dashboard</title>
+    <style>
+        body { 
+            font-family: "Times New Roman", serif; 
+            display: flex; 
+            flex-direction: column;
+            justify-content: left; 
+            position : absolute;
+            top : 100px; 
+            left: 70px;
+            background: #f8fafc; 
+            margin: 0; 
+        }
+        .chart-wrapper {
+            position: relative;
+            background: #fff;
+            padding: 20px 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border-radius: 6px;
+            
+        }
+        .chart { 
+            display: flex; 
+            align-items: flex-end; 
+            gap: 6px; 
+            height: 400px;
+            padding: 10px;
+            border: 1px solid black;
+        }
+        .bar-group { 
+            display: flex; 
+            flex-direction: column;
+            align-items: center; height: 100%;
+            justify-content: flex-end; 
+        }
+        .bar { 
+            width: 30px; 
+            height: 0;
+            border-radius: 4px 4px 0 0; 
+            transition: height 1s cubic-bezier(0.22, 1, 0.36, 1); 
+        }
+        .bar-stack {
+            position: relative;
+            display: flex;
+            flex-direction: column-reverse;
+            width: 26px;
+            height: 100%;
+            border-radius: 4px 4px 0 0;
+        }
+        .segment {
+            width: 100%;
+            height: 0;
+            transition: height 1s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .label { 
+            margin-top: 10px; 
+            font-size: 14px; 
+            color: #334155; 
+        }
+        .price-dot {
+            position: absolute;
+            left: 50%;
+            bottom: 0%;
+            transform: translate(-50%, 50%); 
+            width: 8px;
+            height: 8px;
+            background: #ffffff;
+            border: 2px solid #0f172a;
+            border-radius: 50%;
+            z-index: 3;
+            transition: bottom 1s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        #box {
+            width: 50px;
+            height: 30px;
+            background: #f59e0b;
+        }
+        .dashboard-row {
+            display: flex;
+            align-items: stretch;
+            gap: 200px;
+        }
+
+        .bar-group:hover {
+            background: #e2e8f0;
+            cursor: pointer;
+        }
+        .detail-panel {
+            width: 280px;
+            padding: 24px;
+            background: #ffffff;
+            border: 1px solid black;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }   
+
+        .panel-hour {
+            font-size: 36px;
+            font-weight: bold;
+            border-bottom: 2px solid #334155;
+            padding-bottom: 10px;
+            margin-bottom: 16px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin: 12px 0;
+        }
+
+        .stat-label {
+            font-size: 20px;
+            color: #334155;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #0f172a;
+        }
+
+.panel-footer {
+    border-top: 1px solid #cbd5e1;
+    padding-top: 14px;
+}
+
+    </style>
+</head>
+<body>
+    <h1>Energy Supplied By Source</h1>
+    <div class="dashboard-row">
+    <div class="chart" id="chart"></div>
+
+    <div class="detail-panel">
+            <div>
+                <div class="panel-hour" id="panelHour">Hover over data</div>
+                <div class="stat-row">
+                    <span class="stat-label">Solar</span>
+                    <span class="stat-value" id="panelSolar">—</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Battery</span>
+                    <span class="stat-value" id="panelBattery">—</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Grid</span>
+                    <span class="stat-value" id="panelGrid">—</span>
+                </div>
+        </div>
+
+         <div class="panel-footer">
+                <div class="stat-row">
+                    <span class="stat-label">Total</span>
+                    <span class="stat-value" id="panelTotal">—</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Grid Price</span>
+                    <span class="stat-value" id="panelPrice">—</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <br>
+    <h3 style="margin-left: 350px;">Time(hours)</h3>
+    <div id="box">solar</div>
+    <br>
+    <div id="box" style="background: #10b981;">battery</div>
+    <br>
+    <div id="box" style="background: #0000FF;">grid</div>
+    <script>
+        const COLORS = {
+            solar: '#f59e0b',
+            grid: '#0000FF', 
+            battery: '#10b981',
+        }
+        const data = [
+            { label: '0', solar: 105, battery: 0,  grid: 30,  price: 0.72 },
+            { label: '1', solar: 105, battery: 0,  grid: 30,  price: 0.65 },
+            { label: '2', solar: 0, battery: 0,  grid: 135,  price: 0.74 },
+            { label: '3', solar: 100, battery: 0,  grid: 30,  price: 0.62 },
+            { label: '4', solar: 110, battery: 0,  grid: 30,  price: 0.75 },
+            { label: '5', solar: 115, battery: 0,  grid: 30,  price: 0.68 },
+            { label: '6', solar: 115, battery: 0,  grid: 35,  price: 0.70 },
+            { label: '7', solar: 0, battery: 0,  grid: 165,  price: 0.90 },
+            { label: '8', solar: 150, battery: 0, grid: 40,   price: 0.90 },
+            { label: '9', solar: 165, battery: 45, grid: 0,   price: 1.05 },
+            { label: '10', solar: 190, battery: 35,  grid: 10,  price: 1.05 },
+            { label: '11', solar: 195, battery: 0,  grid: 50,  price: 1.00 },
+            { label: '12', solar: 200,   battery: 0,  grid: 70, price: 0.95 },
+            { label: '13', solar: 200, battery: 0,  grid: 80, price: 0.92 },
+            { label: '14', solar: 200, battery: 0,  grid: 90, price: 0.92 },
+            { label: '15', solar: 200, battery: 70,  grid: 35, price: 1.15 },
+            { label: '16', solar: 200, battery: 10,  grid: 105, price: 1.42 },
+            { label: '17', solar: 200, battery: 70,  grid: 45,  price: 1.55 },
+            { label: '18', solar: 200, battery: 10,  grid: 95,  price: 1.62 },
+            { label: '19', solar: 200, battery: 0,  grid: 90,  price: 1.52 },
+            { label: '20', solar: 200, battery: 75,  grid: 0,  price: 1.35 },
+            { label: '21', solar: 190, battery: 0, grid: 60,   price: 1.02 },
+            { label: '22', solar: 0, battery: 15, grid: 175,   price: 0.72 },
+            { label: '23', solar: 145, battery: 60, grid: 5,   price: 0.75 }
+           
+        ];
+
+        const chart = document.getElementById('chart');
+        const rawMaxUnits = Math.max(...data.map(d => d.solar + d.battery + d.grid));
+        const MAX_UNITS = rawMaxUnits > 0 ? rawMaxUnits * 1.1 : 100;
+        const rawMaxPrice = Math.max(...data.map(d => d.price));
+        const MAX_PRICE = rawMaxPrice > 0 ? rawMaxPrice * 1.1 : 2.0;
+        function showDetails(item) {
+            const total = item.solar + item.battery + item.grid;
+            document.getElementById('panelHour').textContent = `Hour ${item.label}:00`;
+            document.getElementById('panelSolar').textContent = `${item.solar} u`;
+            document.getElementById('panelBattery').textContent = `${item.battery} u`;
+            document.getElementById('panelGrid').textContent = `${item.grid} u`;
+            document.getElementById('panelTotal').textContent = `${total} u`;
+            document.getElementById('panelPrice').textContent = `$${item.price.toFixed(2)}`;
+        }
+        data.forEach(item => {
+            const group = document.createElement('div');
+            group.className = 'bar-group';
+            group.addEventListener('mouseenter', () => showDetails(item));
+
+            const stack = document.createElement('div');
+            stack.className = 'bar-stack';
+            stack.style.backgroundColor = item.color;
+
+            const dot = document.createElement('div');
+            dot.className = 'price-dot';
+            dot.title = `Price: $${item.price}`;
+            stack.appendChild(dot);
+
+            requestAnimationFrame(() => {
+                dot.style.bottom = `${(item.price / MAX_PRICE) * 100}%`;
+});
+
+            const segments = [
+                { name:'solar', val: item.solar, color: COLORS.solar }, 
+                { name:'battery', val: item.battery, color: COLORS.battery }, 
+                { name:'grid', val: item.grid, color: COLORS.grid }
+            ];
+
+            segments.forEach(seg => {
+                const segDiv = document.createElement('div');
+                segDiv.className = 'segment';
+                segDiv.style.backgroundColor = seg.color;
+                segDiv.title = `${item.label}:00 - ${seg.name}: ${seg.val} units`;
+                stack.appendChild(segDiv);
+
+                // Animate height scaled to MAX_UNITS (400)
+                requestAnimationFrame(() => {
+                    segDiv.style.height = `${(seg.val / MAX_UNITS) * 100}%`;
+                });
+            });
+
+            const label = document.createElement('div');
+            label.className = 'label';
+            label.textContent = item.label;
+
+            group.appendChild(stack);
+            group.appendChild(label);
+            chart.appendChild(group);
+
+            });
+    </script>
+</body>
+</html>
