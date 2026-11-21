@@ -48,7 +48,8 @@ class Controller:
         self.outage_needs = []    # what the battery would need to cover each hour if the grid died
         self.total_cost = 0.0
 
-    def hours_left(self):         # hours remaining after current one
+    def hours_left(self): 
+        """hours remaining after current one"""      
         return DAY_HOURS - self.hour - 1
 
     def in_last_hours(self):      # True during last 3 hours
