@@ -40,6 +40,22 @@ def format_number(x):
 
     return x
 
+def read_message(sock):
+    """Read from the server until we have one complete message."""
+    text = ""
+
+    while True:
+        data = sock.recv(1024)
+        if not data:
+            return None  # the server closed the connection
+
+        text += data.decode()
+
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            pass  # not all of it has arrived yet, keep reading
+
 class Controller:
     def __init__(self):
         self.battery = 0.0        # estimate of stored energy
