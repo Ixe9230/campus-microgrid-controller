@@ -84,3 +84,84 @@ class Controller:
         target = self.reserve() #fill the battery up to the emergency amount
         next_clouds = str(msg.get("forecast", "")). strip().lower() == "cloudy"
             
+        if self.hours_left() == 0:  # last hour of the day: nothing left to protect
+            return 0.0
+        window = 2 if self.in_last_hours() else RESERVE_WINDOW  # last 3 hours: look back 2 hours, otherwise 6
+        worst_recent_hour = max(self.outage_needs[-window:], default=0.0)  # the hour that would have needed the most battery
+        return min(BATTERY_CAP, max(MIN_RESERVE, worst_recent_hour))  # keep at least 20, at most 100
+
+    def decide(self, msg):
+        events = parse_events(msg)
+        price = float(msg.get("grid_price", GENERATOR_PRICE))
+        loads = msg.get("loads", [])
+
+        sun_ok = "cloudy_weather" not in events
+        grid_ok = "grid_failure" not in events
+        battery_ok = "battery_failure" not in events
+        generator_ok = "generator_failure" not in events
+
+        kinds = [str(b.get("type", "")).lower() for b in loads]     # building types
+        need = [float(b.get("load", 0)) for b in loads]             # demand per building 
+        plan = [{"solar": 0.0, "battery": 0.0, "grid": 0.0} for _ in loads]
+
+        battery_at_start = self.battery if battery_ok else 0.0   # remember this for the overcharge rule
+
+        def give(source, order, amount):
+            """returns how much is handed out"""
+            used = 0.0
+            for i in order:
+                share = min(need[i], amount - used)
+                if share <= 0:
+                    continue
+                plan[i][source] += share
+                need[i] -= share
+                used += share
+            return used
+
+        # sees how much reserve needs
+        lecture_load = sum(need[i] for i in range(len(loads)) if kinds[i] in NO_SOLAR)
+        other_load = sum(need) - lecture_load
+        self.outage_needs.append(lecture_load + max(0.0, other_load - SOLAR_CAP))
+        self.prices.append(price)
+
+        # allocates solar
+        has_panels = [i for i in range(len(loads)) if kinds[i] not in NO_SOLAR]
+        if sun_ok:
+            give("solar", has_panels, SOLAR_CAP)
+
+        # allocates battery (lecture halls come first)
+        lecture_first = sorted(range(len(loads)), key=lambda i: kinds[i] not in NO_SOLAR)
+        if not grid_ok: # grid is down
+            battery_used = give("battery", lecture_first, battery_at_start)
+        elif price > GENERATOR_PRICE + PRICE_MARGIN or self.in_last_hours(): # battery cheaper than the grid or last few hours
+            spare = max(0.0, battery_at_start - self.reserve())
+            battery_used = give("battery", range(len(loads)), spare)
+        else:
+            battery_used = 0.0
+
+        # grid covers the rest
+        if grid_ok:
+            give("grid", range(len(loads)), float("inf"))
+
+        # generator charges battery
+        charge = 0.0
+        if generator_ok and battery_ok and self.hours_left() > 0:
+            target = self.reserve()
+            avg_price = sum(self.prices) / len(self.prices)
+            if avg_price > GENERATOR_PRICE + PRICE_MARGIN and not self.in_last_hours():
+                target = BATTERY_CAP                        # grid is expensive so charge battery
+            wanted = target - (battery_at_start - battery_used)
+            room = BATTERY_CAP - battery_at_start           # prevents overcharge
+            charge = max(0.0, min(wanted, room))
+
+        # update battery estimate and cost
+        if battery_ok:
+            self.battery = battery_at_start - battery_used + charge
+        cost = price * sum(p["grid"] for p in plan) + GENERATOR_PRICE * charge
+        self.total_cost += cost
+        self.hour += 1
+        print(f"[hour {self.hour}] price={price:.2f} battery={self.battery:.1f} "
+              f"charge={charge:.1f} cost=${cost:.2f} events={sorted(events)}", file=sys.stderr)
+
+        return {"buildings": [{k: round(v, 6) for k, v in p.items()} for p in plan],
+                "generator": round(charge, 6)}
