@@ -122,7 +122,6 @@ class Controller:
         lecture_load = sum(need[i] for i in range(len(loads)) if kinds[i] in NO_SOLAR)
         other_load = sum(need) - lecture_load
         self.outage_needs.append(lecture_load + max(0.0, other_load - SOLAR_CAP))
-        self.prices.append(price)
 
         # allocates solar
         has_panels = [i for i in range(len(loads)) if kinds[i] not in NO_SOLAR]
@@ -147,8 +146,7 @@ class Controller:
         charge = 0.0
         if generator_ok and battery_ok and self.hours_left() > 0:
             target = self.reserve()
-            avg_price = sum(self.prices) / len(self.prices)
-            if avg_price > GENERATOR_PRICE + PRICE_MARGIN and not self.in_last_hours():
+            if price > GENERATOR_PRICE + PRICE_MARGIN and not self.in_last_hours():
                 target = BATTERY_CAP                        # grid is expensive so charge battery
             wanted = target - (battery_at_start - battery_used)
             room = BATTERY_CAP - battery_at_start           # prevents overcharge
