@@ -162,3 +162,22 @@ class Controller:
 
         return {"buildings": [{k: round(v, 6) for k, v in p.items()} for p in plan],
                 "generator": round(charge, 6)}
+
+def main():
+    controller = Controller()
+
+    with socket.create_connection((HOST, PORT)) as sock:
+        while True:
+            msg = read_message(sock)
+
+            if msg is None:  # the server hung up, so the day is over
+                break
+
+            reply = controller.decide(msg)
+            sock.sendall((json.dumps(reply) + "\n").encode())
+
+    print(f"Estimated total cost: ${controller.total_cost:.2f}", file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()
