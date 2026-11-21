@@ -51,22 +51,22 @@ class Controller:
     def __init__(self):
         self.battery = 0.0        # estimate of stored energy
         self.hour = 0
-        self.outage_needs = []    # what the battery would need to cover each hour if the grid died
+        self.outage_needs = []    # what battery covers if grid fails
         self.total_cost = 0.0
 
     def hours_left(self): 
         """hours remaining after current one"""      
         return DAY_HOURS - self.hour - 1
 
-    def in_last_hours(self):      # True during last 3 hours
+    def in_last_hours(self):                   # True during last 3 hours
         return self.hours_left() < LAST_HOURS
 
-    def reserve(self):  # how much battery to keep in case the grid fails
-        if self.hours_left() == 0:  # last hour of the day: nothing left to protect
+    def reserve(self):                                          # battery reserve
+        if self.hours_left() == 0:                              # last hour of the day
             return 0.0
-        window = 2 if self.in_last_hours() else RESERVE_WINDOW  # last 3 hours: look back 2 hours, otherwise 6
-        worst_recent_hour = max(self.outage_needs[-window:], default=0.0)  # the hour that would have needed the most battery
-        return min(BATTERY_CAP, max(MIN_RESERVE, worst_recent_hour))  # keep at least 20, at most 100
+        window = 2 if self.in_last_hours() else RESERVE_WINDOW              # last 3 hours
+        worst_recent_hour = max(self.outage_needs[-window:], default=0.0)  
+        return min(BATTERY_CAP, max(MIN_RESERVE, worst_recent_hour))        # keep at least 20 units
    
     def decide(self, msg):
         events = parse_events(msg)
@@ -78,11 +78,11 @@ class Controller:
         battery_ok = "battery_failure" not in events
         generator_ok = "generator_failure" not in events
 
-        kinds = [str(b.get("type", "")).lower() for b in loads]     # building types
-        need = [float(b.get("load", 0)) for b in loads]             # demand per building 
+        kinds = [str(b.get("type", "")).lower() for b in loads]             # building types
+        need = [float(b.get("load", 0)) for b in loads]                     # demand per building 
         plan = [{"solar": 0.0, "battery": 0.0, "grid": 0.0} for _ in loads]
 
-        battery_at_start = self.battery if battery_ok else 0.0   # remember this for the overcharge rule
+        battery_at_start = self.battery if battery_ok else 0.0              # use to prevent overcharge
 
         def give(source, order, amount):
             """returns how much is handed out"""
