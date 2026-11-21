@@ -30,6 +30,14 @@ def parse_events(msg):
     for name in names:
         events.add(str(name).strip().lower())
     return events
+
+def format_number(x):
+    """Round, and print whole numbers as ints."""
+    x = round(float(x), 6)
+    if x == int(x):
+        return int(x)
+    return x
+
 class Controller:
     def __init__(self):
         self.battery = 0.0        # estimate of stored energy
