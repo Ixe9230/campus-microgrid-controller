@@ -68,18 +68,6 @@ class Controller:
         worst_recent_hour = max(self.outage_needs[-window:], default=0.0)  # the hour that would have needed the most battery
         return min(BATTERY_CAP, max(MIN_RESERVE, worst_recent_hour))  # keep at least 20, at most 100
    
-    def charge_amount(self, msg): #how much the geneerator puts into the battery this hour
-            if self.hours_left()==0: # this is the last hour of the day so dont restore
-                return 0.0
-            expensive_grid = msg.get("grid_price", 0.0) > GENERATOR_PRICE + PRICE_MARGIN #grid is more expensive than generator
-            target = self.reserve() #fill the battery up to this amount
-            next_clouds = msg["forecast"] == "cloudy" #will it be cloudy next hour?
-            if (expensive_grid or next_clouds) and not self.in_last_hours(): #if the grid is expensive or the next hour is cloudy (no solar), and we are not in the last 3 hours of the day
-                target = BATTERY_CAP #FILL THE BATTERY TO MAXIMUM CAPACITY, will need it 
-            else:
-                target = self.reserve() #otherwise, just fill it to the reserve amount (emergency)
-                return max (0.0, target - self.battery) #how much to pump, dont pump negatives
-
     def decide(self, msg):
         events = parse_events(msg)
         price = float(msg.get("grid_price", GENERATOR_PRICE))
@@ -136,10 +124,10 @@ class Controller:
         charge = 0.0
         if generator_ok and battery_ok and self.hours_left() > 0:
             target = self.reserve()
-            if price > GENERATOR_PRICE + PRICE_MARGIN and not self.in_last_hours():
-                target = BATTERY_CAP                        # grid is expensive so charge battery
+            if (price > GENERATOR_PRICE + PRICE_MARGIN or msg["forecast"]== "cloudy" ) and not self.in_last_hours():
+                target = BATTERY_CAP # grid is expensive so charge battery
             wanted = target - (battery_at_start - battery_used)
-            room = BATTERY_CAP - battery_at_start           # prevents overcharge
+            room = BATTERY_CAP - battery_at_start # prevents overcharge
             charge = max(0.0, min(wanted, room))
 
         # update battery estimate and cost
